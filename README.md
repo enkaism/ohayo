@@ -1,7 +1,10 @@
-## Install
+## Setup
 
 ```bash
 go install github.com/enkaism/ohayo
+
+ohayo set-token $token
+ohayo set-channel-id $channelID
 ```
 
 ## Usage

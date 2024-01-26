@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gocarina/gocsv"
@@ -23,20 +25,7 @@ func main() {
 			return
 		}
 	}
-
-	token = os.Getenv("SLACK_TOKEN")
-	if token == "" {
-		fmt.Println("SLACK_TOKENが設定されていません")
-		return
-	}
-
-	channelID = os.Getenv("SLACK_CHANNEL_ID")
-	if channelID == "" {
-		fmt.Println("SLACK_CHANNEL_IDが設定されていません")
-		return
-	}
-
-	if !(len(os.Args) == 2 || (len(os.Args) == 3 && os.Args[1] == "end")) {
+	if !(len(os.Args) == 2 || (len(os.Args) == 3 && (os.Args[1] == "end" || os.Args[1] == "set-token" || os.Args[1] == "set-channel-id"))) {
 		fmt.Println("Usage: go run main.go [start|pause|resume|end (memo)]")
 		os.Exit(1)
 	}
@@ -46,6 +35,27 @@ func main() {
 	if len(os.Args) == 3 {
 		note = os.Args[2]
 	}
+	switch command {
+	case "set-token":
+		setEnv("SLACK_TOKEN", note)
+		return
+	case "set-channel-id":
+		setEnv("SLACK_CHANNEL_ID", note)
+		return
+	}
+
+	token = getEnv("SLACK_TOKEN")
+	if token == "" {
+		fmt.Println("SLACK_TOKENが設定されていません")
+		return
+	}
+
+	channelID = getEnv("SLACK_CHANNEL_ID")
+	if channelID == "" {
+		fmt.Println("SLACK_CHANNEL_IDが設定されていません")
+		return
+	}
+
 	switch command {
 	case "start":
 		Start()
@@ -58,7 +68,110 @@ func main() {
 	default:
 		fmt.Println("不明なコマンドです。[start|pause|resume|end] を指定してください。")
 	}
+}
 
+func setEnv(key, value string) {
+	// ファイルを開く（存在しない場合は新規作成）
+	file, err := os.OpenFile("./.env", os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		fmt.Println("ファイルを開く際にエラーが発生しました:", err)
+		return
+	}
+	defer file.Close()
+
+	// ファイルを読み込み、行ごとに処理
+	scanner := bufio.NewScanner(file)
+	var lines []string
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// keyで始まる行があれば新しいvalueに置き換える
+		if strings.HasPrefix(line, key) {
+			line = key + "=" + value
+		}
+
+		lines = append(lines, line)
+	}
+
+	// エラーがあれば出力
+	if err := scanner.Err(); err != nil {
+		fmt.Println("ファイルを読み込む際にエラーが発生しました:", err)
+		return
+	}
+
+	// ファイルの末尾に新しい行を追加（"TOKEN="で始まる行が見つからなかった場合）
+	if !containsKey(lines, key) {
+		lines = append(lines, key+"="+value)
+	}
+
+	// ファイルをリセットして新しい内容を書き込む
+	if err := resetAndWriteFile(file, lines); err != nil {
+		fmt.Println("ファイルに書き込む際にエラーが発生しました:", err)
+		return
+	}
+}
+
+func getEnv(key string) string {
+	file, err := os.Open("./.env")
+	if err != nil {
+		fmt.Printf("open file err: %s\n", err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		slice := strings.Split(line, "=")
+		if len(slice) != 2 {
+			fmt.Println("get env failed. len(slice) must be 2")
+		}
+		if key == slice[0] {
+			return slice[1]
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Printf("read file err: %s\n", err)
+	}
+	return ""
+}
+
+func containsKey(lines []string, key string) bool {
+	for _, line := range lines {
+		if strings.HasPrefix(line, key+"=") {
+			return true
+		}
+	}
+	return false
+}
+
+// ファイルをリセットして新しい内容を書き込む関数
+func resetAndWriteFile(file *os.File, lines []string) error {
+	// ファイルを先頭に戻してから中身を空にする
+	if err := file.Truncate(0); err != nil {
+		return err
+	}
+
+	// ファイルの先頭に戻す
+	if _, err := file.Seek(0, 0); err != nil {
+		return err
+	}
+
+	// 新しい内容をファイルに書き込む
+	writer := bufio.NewWriter(file)
+	for _, line := range lines {
+		_, err := writer.WriteString(line + "\n")
+		if err != nil {
+			return err
+		}
+	}
+
+	// ファイルに変更を反映
+	if err := writer.Flush(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // 勤務状況を表す構造体
@@ -69,7 +182,6 @@ type WorkStatus struct {
 	EndTime     time.Time   `csv:"end_time"`
 	IsPaused    bool        `csv:"is_paused"`
 	IsEnd       bool        `csv:"is_end"`
-	Slacktoken  string      `csv:"-"`
 }
 
 func NewWorkStatus() *WorkStatus {

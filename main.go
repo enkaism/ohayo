@@ -347,8 +347,9 @@ func notifySlack(ws *WorkStatus, memo string) {
 		ws.StartTime.Format("2006/01/02"),
 		fmt.Sprintf("%.0fh%.0fm", totalTime.Hours(), totalTime.Minutes()),
 		ws.StartTime.Format("15:04:05"),
+		ws.EndTime.Format("15:04:05"),
 		fmt.Sprintf("%.0fh%.0fm", totalPaused.Hours(), totalPaused.Minutes()),
-		ws.EndTime.Format("15:04:05"), memo)
+		memo)
 
 	channelID, timestamp, err := api.PostMessage(channelID, slack.MsgOptionText(statusMessage, true))
 	if err != nil {

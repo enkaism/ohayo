@@ -343,7 +343,7 @@ func notifySlack(ws *WorkStatus, memo string) {
 	}
 	totalTime := ws.EndTime.Sub(ws.StartTime) - totalPaused
 
-	statusMessage := fmt.Sprintf("%s %s\n勤務開始：%s\n終了：%s\n休憩:%s\n%s",
+	statusMessage := fmt.Sprintf("%s %s\n勤務開始: %s\n勤務終了: %s\n休憩時間: %s\n%s",
 		ws.StartTime.Format("2006/01/02"),
 		fmt.Sprintf("%.0fh%.0fm", totalTime.Hours(), totalTime.Minutes()),
 		ws.StartTime.Format("15:04:05"),

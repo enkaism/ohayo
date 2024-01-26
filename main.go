@@ -72,7 +72,7 @@ func main() {
 
 func setEnv(key, value string) {
 	// ファイルを開く（存在しない場合は新規作成）
-	file, err := os.OpenFile("./.env", os.O_RDWR|os.O_CREATE, 0644)
+	file, err := os.OpenFile("./.ohayo_env", os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		fmt.Println("ファイルを開く際にエラーが発生しました:", err)
 		return
@@ -113,7 +113,7 @@ func setEnv(key, value string) {
 }
 
 func getEnv(key string) string {
-	file, err := os.Open("./.env")
+	file, err := os.Open("./.ohayo_env")
 	if err != nil {
 		fmt.Printf("open file err: %s\n", err)
 	}

@@ -195,11 +195,9 @@ func NewCurrentWorkStatus() (*WorkStatus, error) {
 	var ws []*WorkStatus
 	err := readCSVFile(logDir+currentLogFile, &ws)
 	if err != nil {
-		fmt.Println("CSVファイルの読み込みに失敗しました:", err)
 		return nil, err
 	}
 	if len(ws) != 1 {
-		fmt.Println("CSVファイルの読み込みに失敗しました:", err)
 		return nil, err
 	}
 

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/user"
 	"strings"
 	"time"
 
@@ -11,15 +12,33 @@ import (
 	"github.com/slack-go/slack"
 )
 
-const logDir = "./logs"
+const ohayoDir = "/ohayo"
+const logDir = "/logs"
 const currentLogFile = "/current.csv"
+const envFile = "/.ohayo_env"
 
+var homeDir = ""
 var token = ""
 var channelID = ""
 
 func main() {
-	if _, err := os.Stat(logDir); os.IsNotExist(err) {
-		err := os.Mkdir(logDir, 0755)
+	// ユーザー情報を取得
+	currentUser, err := user.Current()
+	if err != nil {
+		fmt.Println("ユーザー情報を取得できませんでした:", err)
+		return
+	}
+
+	// ホームディレクトリのパス
+	homeDir = currentUser.HomeDir
+	dir := homeDir + ohayoDir + logDir
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err := os.Mkdir(homeDir+ohayoDir, 0755)
+		if err != nil {
+			fmt.Println("ディレクトリの作成に失敗しました:", err)
+			return
+		}
+		err = os.Mkdir(dir, 0755)
 		if err != nil {
 			fmt.Println("ディレクトリの作成に失敗しました:", err)
 			return
@@ -72,7 +91,7 @@ func main() {
 
 func setEnv(key, value string) {
 	// ファイルを開く（存在しない場合は新規作成）
-	file, err := os.OpenFile("./.ohayo_env", os.O_RDWR|os.O_CREATE, 0644)
+	file, err := os.OpenFile(homeDir+ohayoDir+envFile, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		fmt.Println("ファイルを開く際にエラーが発生しました:", err)
 		return
@@ -113,7 +132,7 @@ func setEnv(key, value string) {
 }
 
 func getEnv(key string) string {
-	file, err := os.Open("./.ohayo_env")
+	file, err := os.Open(homeDir + ohayoDir + envFile)
 	if err != nil {
 		fmt.Printf("open file err: %s\n", err)
 	}
@@ -193,7 +212,7 @@ func NewWorkStatus() *WorkStatus {
 
 func NewCurrentWorkStatus() (*WorkStatus, error) {
 	var ws []*WorkStatus
-	err := readCSVFile(logDir+currentLogFile, &ws)
+	err := readCSVFile(homeDir+ohayoDir+logDir+currentLogFile, &ws)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +253,7 @@ func Start() {
 	currentWs, err := NewCurrentWorkStatus()
 	if err != nil || currentWs.IsEnd {
 		ws := NewWorkStatus()
-		err = createCSVFile(logDir+currentLogFile, []*WorkStatus{ws})
+		err = createCSVFile(homeDir+ohayoDir+logDir+currentLogFile, []*WorkStatus{ws})
 		if err != nil {
 			fmt.Println("CSVの書き込みに失敗しました。")
 			return
@@ -266,7 +285,7 @@ func Pause() {
 
 	currentWs.IsPaused = true
 	currentWs.PauseTimes = append(currentWs.PauseTimes, time.Now())
-	err = createCSVFile(logDir+currentLogFile, []*WorkStatus{currentWs})
+	err = createCSVFile(homeDir+ohayoDir+logDir+currentLogFile, []*WorkStatus{currentWs})
 	if err != nil {
 		fmt.Println("CSVの書き込みに失敗しました。")
 		return
@@ -294,7 +313,7 @@ func Resume() {
 
 	currentWs.IsPaused = false
 	currentWs.ResumeTimes = append(currentWs.ResumeTimes, time.Now())
-	err = createCSVFile(logDir+currentLogFile, []*WorkStatus{currentWs})
+	err = createCSVFile(homeDir+ohayoDir+logDir+currentLogFile, []*WorkStatus{currentWs})
 	if err != nil {
 		fmt.Println("CSVの書き込みに失敗しました。")
 		return
@@ -323,7 +342,7 @@ func End(memo string) {
 	currentWs.IsPaused = false
 	currentWs.IsEnd = true
 	currentWs.EndTime = now
-	err = createCSVFile(logDir+currentLogFile, []*WorkStatus{currentWs})
+	err = createCSVFile(homeDir+ohayoDir+logDir+currentLogFile, []*WorkStatus{currentWs})
 	if err != nil {
 		fmt.Println("CSVの書き込みに失敗しました。")
 		return

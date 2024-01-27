@@ -20,6 +20,7 @@ const envFile = "/.ohayo_env"
 var homeDir = ""
 var token = ""
 var channelID = ""
+var name = ""
 
 func main() {
 	// ユーザー情報を取得
@@ -44,7 +45,7 @@ func main() {
 			return
 		}
 	}
-	if !(len(os.Args) == 2 || (len(os.Args) == 3 && (os.Args[1] == "end" || os.Args[1] == "set-token" || os.Args[1] == "set-channel-id"))) {
+	if !(len(os.Args) == 2 || (len(os.Args) == 3 && (os.Args[1] == "end" || os.Args[1] == "set-token" || os.Args[1] == "set-channel-id" || os.Args[1] == "set-name"))) {
 		fmt.Println("Usage: go run main.go [start|pause|resume|end (memo)]")
 		os.Exit(1)
 	}
@@ -61,6 +62,9 @@ func main() {
 	case "set-channel-id":
 		setEnv("SLACK_CHANNEL_ID", note)
 		return
+	case "set-name":
+		setEnv("SLACK_NAME", note)
+		return
 	}
 
 	token = getEnv("SLACK_TOKEN")
@@ -74,6 +78,7 @@ func main() {
 		fmt.Println("SLACK_CHANNEL_IDが設定されていません")
 		return
 	}
+	name = getEnv("SLACK_NAME")
 
 	switch command {
 	case "start":
@@ -362,7 +367,8 @@ func notifySlack(ws *WorkStatus, memo string) {
 	}
 	totalTime := ws.EndTime.Sub(ws.StartTime) - totalPaused
 
-	statusMessage := fmt.Sprintf("%s %s\n勤務開始: %s\n勤務終了: %s\n休憩時間: %s\n%s",
+	statusMessage := fmt.Sprintf("%s\n%s %s\n勤務開始: %s\n勤務終了: %s\n休憩時間: %s\n%s",
+		name,
 		ws.StartTime.Format("2006/01/02"),
 		fmt.Sprintf("%.0fh%.0fm", totalTime.Hours(), totalTime.Minutes()),
 		ws.StartTime.Format("15:04:05"),

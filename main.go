@@ -370,10 +370,10 @@ func notifySlack(ws *WorkStatus, memo string) {
 	statusMessage := fmt.Sprintf("%s\n%s %s\n勤務開始: %s\n勤務終了: %s\n休憩時間: %s\n%s",
 		name,
 		ws.StartTime.Format("2006/01/02"),
-		fmt.Sprintf("%.0fh%.0fm", totalTime.Hours(), totalTime.Minutes()),
+		durationToTimeString(totalTime),
 		ws.StartTime.Format("15:04:05"),
 		ws.EndTime.Format("15:04:05"),
-		fmt.Sprintf("%.0fh%.0fm", totalPaused.Hours(), totalPaused.Minutes()),
+		durationToTimeString(totalPaused),
 		memo)
 
 	channelID, timestamp, err := api.PostMessage(channelID, slack.MsgOptionText(statusMessage, true))
@@ -383,4 +383,13 @@ func notifySlack(ws *WorkStatus, memo string) {
 	}
 
 	fmt.Printf("Slackに通知しました。Channel: %s, Timestamp: %s\n", channelID, timestamp)
+}
+
+func durationToTimeString(duration time.Duration) string {
+	m := uint(duration.Minutes())
+
+	h := m / 60
+	m = m % 60
+
+	return fmt.Sprintf("%dh%dm", h, m)
 }
